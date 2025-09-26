@@ -1,0 +1,6 @@
+build/
+android/
+docs/
+asset/*.js
+asset/*.css
+.env
