@@ -27,6 +27,11 @@ std::string TimeUtils::format(const std::tm *tmTime, const char *formatStr)
     return oss.str();
 }
 
+std::string TimeUtils::format(const std::tm *tmTime, TimeUtils::TIME_FORMAT format)
+{
+    return TimeUtils::format(tmTime, TimeUtils::getFormat(format));
+}
+
 bool TimeUtils::parse(std::tm *result, const char *dateStr, const char *formatStr)
 {
     std::istringstream ss(dateStr);
@@ -36,6 +41,11 @@ bool TimeUtils::parse(std::tm *result, const char *dateStr, const char *formatSt
         return false;
     }
     return true;
+}
+
+bool TimeUtils::parse(std::tm *result, const char *dateStr, TimeUtils::TIME_FORMAT format)
+{
+    return TimeUtils::parse(result, dateStr, TimeUtils::getFormat(format));
 }
 
 void TimeUtils::addSeconds(std::tm *time, int seconds)
@@ -93,4 +103,30 @@ std::time_t TimeUtils::getDateEpoch(std::time_t time)
     tmr.tm_min = 0;
     tmr.tm_sec = 0;
     return std::mktime(&tmr);
+}
+
+const char *TimeUtils::getFormat(TimeUtils::TIME_FORMAT format)
+{
+    static const char *formatCollection[] = {
+        "%Y-%m-%d",
+        "%Y-%m-%d %H:%M:%S",
+        "%H:%M:%S",
+        "%I:%M:%S %p",
+        "%Y-%m-%d_%H-%M-%S",
+        "%A, %B %d, %Y",
+        "%d/%m/%Y",
+        "%m-%d-%Y",
+        "%Y%m%d",
+        "%a, %d %b %Y %H:%M:%S GMT",
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%d",
+        "%Y-%m-%d %H:%M:%S %z",
+        "%a",
+        "%b",
+        "%H:%M",
+        "%Y-%m-%d__%H-%M-%S",
+        "%Y",
+        "%B %Y"};
+    return formatCollection[static_cast<int>(format)];
 }
