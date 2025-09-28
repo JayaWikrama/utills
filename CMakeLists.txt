@@ -26,9 +26,14 @@ endif()
 
 # Define source files
 set(SOURCE_FILES
-    src/debug.cpp
-    src/string.cpp
-    src/time.cpp
+  src/debug.cpp
+  src/string.cpp
+  src/time.cpp
+)
+
+set(TEST_SOURCE_FILES
+  test/src/time.cpp
+  test/src/debug.cpp
 )
 
 # Create static library
@@ -40,9 +45,7 @@ add_library(${PROJECT_NAME}-lib SHARED $<TARGET_OBJECTS:${PROJECT_NAME}-ar>)
 set_target_properties(${PROJECT_NAME}-lib PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 # Create test executables
-add_executable(${PROJECT_NAME}-test
-  test/src/debug.cpp
-)
+add_executable(${PROJECT_NAME}-test test/main.cpp ${TEST_SOURCE_FILES})
 
 # Include directories for the project
 set(INCLUDE_DIRS
