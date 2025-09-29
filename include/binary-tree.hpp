@@ -21,6 +21,7 @@ template <typename T>
 class BinaryTree
 {
 private:
+    size_t sz;
     Node<T> *root;
 
     void insert(Node<T> *&node, const T &val)
@@ -28,6 +29,10 @@ private:
         if (node == nullptr)
         {
             node = new Node<T>(val);
+            if (node)
+            {
+                sz++;
+            }
         }
         else if (val < node->data)
         {
@@ -37,18 +42,23 @@ private:
         {
             insert(node->right, val);
         }
+        else
+        {
+            /* duplicate data always on the right side */
+            insert(node->right, val);
+        }
     }
 
-    bool search(Node<T> *node, const T &val) const
+    bool contains(Node<T> *node, const T &val) const
     {
         if (node == nullptr)
             return false;
         if (val == node->data)
             return true;
         else if (val < node->data)
-            return search(node->left, val);
+            return contains(node->left, val);
         else
-            return search(node->right, val);
+            return contains(node->right, val);
     }
 
     Node<T> *find(Node<T> *node, const T &val)
@@ -81,18 +91,24 @@ private:
             if (node->left == nullptr && node->right == nullptr)
             {
                 delete node;
+                if (sz > 0)
+                    --sz;
                 return nullptr;
             }
             else if (node->left == nullptr)
             {
                 Node<T> *temp = node->right;
                 delete node;
+                if (sz > 0)
+                    --sz;
                 return temp;
             }
             else if (node->right == nullptr)
             {
                 Node<T> *temp = node->left;
                 delete node;
+                if (sz > 0)
+                    --sz;
                 return temp;
             }
             else
@@ -148,11 +164,12 @@ private:
     }
 
 public:
-    BinaryTree() : root(nullptr) {}
+    BinaryTree() : sz(0), root(nullptr) {}
 
     ~BinaryTree()
     {
         deleteTree(root);
+        sz = 0;
     }
 
     void insert(const T &val)
@@ -160,12 +177,12 @@ public:
         insert(root, val);
     }
 
-    bool search(const T &val) const
+    bool contains(const T &val) const
     {
-        return search(root, val);
+        return contains(root, val);
     }
 
-    const Node<T> *getRoot()
+    const Node<T> *getRoot() const
     {
         return root;
     }
@@ -184,6 +201,7 @@ public:
     {
         deleteTree(root);
         root = nullptr;
+        sz = 0;
     }
 
     void inOrder(const std::function<bool(T &)> &callback) const
@@ -194,6 +212,11 @@ public:
     void inOrder(const std::function<bool(T &)> &callback)
     {
         inOrderTraversal(root, callback);
+    }
+
+    size_t size() const
+    {
+        return this->sz;
     }
 };
 
