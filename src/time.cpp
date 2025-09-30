@@ -80,7 +80,7 @@ std::time_t TimeUtils::toEpoch(const std::tm *time)
 
 void TimeUtils::fromEpoch(std::tm *result, std::time_t epoch)
 {
-    memcpy(result, std::gmtime(&epoch), sizeof(std::tm));
+    memcpy(result, std::localtime(&epoch), sizeof(std::tm));
 }
 
 bool TimeUtils::isValidDate(int year, int month, int day)
