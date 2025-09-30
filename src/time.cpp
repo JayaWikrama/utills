@@ -34,6 +34,7 @@ std::string TimeUtils::format(const std::tm *tmTime, TimeUtils::TIME_FORMAT form
 
 bool TimeUtils::parse(std::tm *result, const char *dateStr, const char *formatStr)
 {
+    memset(result, 0x00, sizeof(std::tm));
     std::istringstream ss(dateStr);
     ss >> std::get_time(result, formatStr);
     if (ss.fail())
