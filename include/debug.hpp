@@ -68,11 +68,17 @@ public:
     void historyIteration(const std::function<bool(const char *)> &callback);
     void clearLogHistory();
 
+    static std::string generate(LogType_t type,
+                                const char *sourceName,
+                                const char *functionName,
+                                const char *format,
+                                va_list args);
+
 protected:
     size_t getMaxLineLogs();
     size_t getHistoriesNumber();
-    std::string_view logTypeToString(LogType_t type) const;
-    std::string_view extractFunctionName(const char *functionName) const;
+    static std::string_view logTypeToString(LogType_t type);
+    static std::string_view extractFunctionName(const char *functionName);
     std::string generate(LogType_t type,
                          const char *functionName,
                          const char *format,

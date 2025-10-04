@@ -73,13 +73,13 @@ size_t Debug::getHistoriesNumber()
     return 0;
 }
 
-std::string_view Debug::logTypeToString(Debug::LogType_t type) const
+std::string_view Debug::logTypeToString(Debug::LogType_t type)
 {
     static constexpr std::string_view logTypeStr[] = {"I", "W", "E", "C"};
     return logTypeStr[static_cast<int>(type)];
 }
 
-std::string_view Debug::extractFunctionName(const char *functionName) const
+std::string_view Debug::extractFunctionName(const char *functionName)
 {
     std::string_view fn(functionName);
 
@@ -98,29 +98,7 @@ std::string Debug::generate(Debug::LogType_t type,
                             const char *format,
                             va_list args)
 {
-    std::chrono::time_point<std::chrono::system_clock> tnow = std::chrono::system_clock::now();
-    std::time_t now = std::chrono::system_clock::to_time_t(tnow);
-    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(tnow.time_since_epoch()) % 1000;
-    std::tm localTime;
-#if defined(_MSC_VER)
-    localtime_s(&localTime, &now);
-#else
-    localtime_r(&now, &localTime);
-#endif
-
-    va_list argsCopy;
-    va_copy(argsCopy, args);
-    int size = std::vsnprintf(nullptr, 0, format, argsCopy) + 1;
-    va_end(argsCopy);
-
-    std::vector<char> buffer(size);
-    std::vsnprintf(buffer.data(), size, format, args);
-
-    std::ostringstream oss;
-    oss << "[" << std::put_time(&localTime, "%y%m%d_%H%M%S") << '.' << std::setw(3) << std::setfill('0') << ms.count() << "] [" << logTypeToString(type) << "]: "
-        << extractFunctionName(functionName) << ": " << buffer.data();
-
-    return oss.str();
+    return Debug::generate(type, nullptr, functionName, format, args);
 }
 
 void Debug::log(LogType_t type, const char *functionName, const char *format, ...)
@@ -192,4 +170,35 @@ void Debug::clearLogHistory()
         {
         }
     }
+}
+
+std::string Debug::generate(Debug::LogType_t type,
+                            const char *sourceName,
+                            const char *functionName,
+                            const char *format,
+                            va_list args)
+{
+    std::chrono::time_point<std::chrono::system_clock> tnow = std::chrono::system_clock::now();
+    std::time_t now = std::chrono::system_clock::to_time_t(tnow);
+    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(tnow.time_since_epoch()) % 1000;
+    std::tm localTime;
+#if defined(_MSC_VER)
+    localtime_s(&localTime, &now);
+#else
+    localtime_r(&now, &localTime);
+#endif
+
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+    int size = std::vsnprintf(nullptr, 0, format, argsCopy) + 1;
+    va_end(argsCopy);
+
+    std::vector<char> buffer(size);
+    std::vsnprintf(buffer.data(), size, format, args);
+
+    std::ostringstream oss;
+    oss << "[" << std::put_time(&localTime, "%y%m%d_%H%M%S") << '.' << std::setw(3) << std::setfill('0') << ms.count() << "] [" << Debug::logTypeToString(type) << "]: "
+        << (sourceName ? std::string(sourceName) + " " : "") << Debug::extractFunctionName(functionName) << ": " << buffer.data();
+
+    return oss.str();
 }
