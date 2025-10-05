@@ -210,3 +210,16 @@ std::string Debug::generate(Debug::LogType_t type,
 
     return oss.str();
 }
+
+std::string Debug::generate(LogType_t type,
+                            const char *sourceName,
+                            const char *functionName,
+                            const char *format,
+                            ...)
+{
+    va_list args;
+    va_start(args, format);
+    std::string result = Debug::generate(type, sourceName, functionName, format, args);
+    va_end(args);
+    return result;
+}

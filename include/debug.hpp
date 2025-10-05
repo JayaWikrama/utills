@@ -74,6 +74,11 @@ public:
                                 const char *functionName,
                                 const char *format,
                                 va_list args);
+    static std::string generate(LogType_t type,
+                                const char *sourceName,
+                                const char *functionName,
+                                const char *format,
+                                ...);
 
 protected:
     size_t getMaxLineLogs();
