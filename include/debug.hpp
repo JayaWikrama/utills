@@ -68,6 +68,7 @@ public:
     void historyIteration(const std::function<bool(const char *)> &callback);
     void clearLogHistory();
 
+    static void log(LogType_t type, const char *sourceName, const char *functionName, const char *format, ...);
     static std::string generate(LogType_t type,
                                 const char *sourceName,
                                 const char *functionName,

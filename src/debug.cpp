@@ -172,6 +172,14 @@ void Debug::clearLogHistory()
     }
 }
 
+void Debug::log(LogType_t type, const char *sourceName, const char *functionName, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    std::cout << Debug::generate(type, sourceName, functionName, format, args);
+    va_end(args);
+}
+
 std::string Debug::generate(Debug::LogType_t type,
                             const char *sourceName,
                             const char *functionName,
