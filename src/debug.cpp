@@ -79,6 +79,14 @@ std::string_view Debug::logTypeToString(Debug::LogType_t type)
     return logTypeStr[static_cast<int>(type)];
 }
 
+std::string_view Debug::extractFileName(const char *fileName)
+{
+    const char *slash = strrchr(fileName, '/');
+    if (!slash)
+        slash = strrchr(fileName, '\\');
+    return slash ? slash + 1 : fileName;
+}
+
 std::string_view Debug::extractFunctionName(const char *functionName)
 {
     std::string_view fn(functionName);
@@ -98,7 +106,7 @@ std::string Debug::generate(Debug::LogType_t type,
                             const char *format,
                             va_list args)
 {
-    return Debug::generate(type, nullptr, functionName, format, args);
+    return Debug::generate(type, nullptr, 0, functionName, format, args);
 }
 
 void Debug::log(LogType_t type, const char *functionName, const char *format, ...)
@@ -172,16 +180,17 @@ void Debug::clearLogHistory()
     }
 }
 
-void Debug::log(LogType_t type, const char *sourceName, const char *functionName, const char *format, ...)
+void Debug::log(Debug::LogType_t type, const char *sourceName, int line, const char *functionName, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    std::cout << Debug::generate(type, sourceName, functionName, format, args);
+    std::cout << Debug::generate(type, sourceName, line, functionName, format, args);
     va_end(args);
 }
 
 std::string Debug::generate(Debug::LogType_t type,
                             const char *sourceName,
+                            int line,
                             const char *functionName,
                             const char *format,
                             va_list args)
@@ -206,20 +215,21 @@ std::string Debug::generate(Debug::LogType_t type,
 
     std::ostringstream oss;
     oss << "[" << std::put_time(&localTime, "%y%m%d_%H%M%S") << '.' << std::setw(3) << std::setfill('0') << ms.count() << "] [" << Debug::logTypeToString(type) << "]: "
-        << (sourceName ? std::string(sourceName) + " " : "") << Debug::extractFunctionName(functionName) << ": " << buffer.data();
+        << (sourceName ? std::string(Debug::extractFileName(sourceName)) + (line > 0 ? ":" + std::to_string(line) + " → " : " → ") : "") << Debug::extractFunctionName(functionName) << ": " << buffer.data();
 
     return oss.str();
 }
 
 std::string Debug::generate(LogType_t type,
                             const char *sourceName,
+                            int line,
                             const char *functionName,
                             const char *format,
                             ...)
 {
     va_list args;
     va_start(args, format);
-    std::string result = Debug::generate(type, sourceName, functionName, format, args);
+    std::string result = Debug::generate(type, sourceName, line, functionName, format, args);
     va_end(args);
     return result;
 }
