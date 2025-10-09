@@ -22,6 +22,9 @@ void TimeUtils::nowUTC(std::tm *result)
 
 std::string TimeUtils::format(const std::tm *tmTime, const char *formatStr)
 {
+    std::time_t timeEpoch = TimeUtils::toEpoch(tmTime);
+    std::tm tmTmp = {};
+    TimeUtils::fromEpoch(&tmTmp, timeEpoch);
     std::ostringstream oss;
     oss << std::put_time(tmTime, formatStr);
     return oss.str();
