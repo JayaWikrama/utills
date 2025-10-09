@@ -130,7 +130,7 @@ void Debug::log(LogType_t type, const char *functionName, const char *format, ..
             if (q->size() > maxLineLogs)
             {
                 line = q->dequeue();
-                delete line;
+                delete[] line;
             }
         }
     }
