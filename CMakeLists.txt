@@ -29,6 +29,7 @@ set(SOURCE_FILES
   src/debug.cpp
   src/string.cpp
   src/time.cpp
+  src/error.cpp
 )
 
 set(TEST_SOURCE_FILES
