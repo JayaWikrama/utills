@@ -41,12 +41,15 @@ set(TEST_SOURCE_FILES
   test/src/debug.cpp
 )
 
+# Create object
+add_library(${PROJECT_NAME}-obj OBJECT ${SOURCE_FILES})
+
 # Create static library
-add_library(${PROJECT_NAME}-ar STATIC ${SOURCE_FILES})
+add_library(${PROJECT_NAME}-ar STATIC $<TARGET_OBJECTS:${PROJECT_NAME}-obj>)
 set_target_properties(${PROJECT_NAME}-ar PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 # Create shared library from static library
-add_library(${PROJECT_NAME}-lib SHARED $<TARGET_OBJECTS:${PROJECT_NAME}-ar>)
+add_library(${PROJECT_NAME}-lib SHARED $<TARGET_OBJECTS:${PROJECT_NAME}-obj>)
 set_target_properties(${PROJECT_NAME}-lib PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 # Create test executables
@@ -58,6 +61,7 @@ set(INCLUDE_DIRS
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test/include>
   $<INSTALL_INTERFACE:include>
 )
+target_include_directories(${PROJECT_NAME}-obj PUBLIC ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}-ar PUBLIC ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}-lib PUBLIC ${INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}-test PUBLIC ${INCLUDE_DIRS})
