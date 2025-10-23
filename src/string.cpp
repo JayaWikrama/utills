@@ -241,8 +241,10 @@ std::string StringUtils::join(const std::vector<std::string> &parts, const std::
 
 std::string StringUtils::replacePlaceholder(std::string str, const std::map<std::string, std::string> &values)
 {
-    for (const auto &[key, val] : values)
+    for (const auto &pair : values)
     {
+        const std::string &key = pair.first;
+        const std::string &val = pair.second;
         std::string placeholder = "{" + key + "}";
         str = StringUtils::replaceAll(str, placeholder, val);
     }

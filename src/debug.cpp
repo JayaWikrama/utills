@@ -73,13 +73,25 @@ size_t Debug::getHistoriesNumber()
     return 0;
 }
 
+#ifdef CXXSTD_17
 std::string_view Debug::logTypeToString(Debug::LogType_t type)
+#else
+std::string Debug::logTypeToString(Debug::LogType_t type)
+#endif
 {
+#ifdef CXXSTD_17
     static constexpr std::string_view logTypeStr[] = {"I", "W", "E", "C"};
+#else
+    static std::string logTypeStr[] = {"I", "W", "E", "C"};
+#endif
     return logTypeStr[static_cast<int>(type)];
 }
 
+#ifdef CXXSTD_17
 std::string_view Debug::extractFileName(const char *fileName)
+#else
+std::string Debug::extractFileName(const char *fileName)
+#endif
 {
     const char *slash = strrchr(fileName, '/');
     if (!slash)
@@ -87,18 +99,36 @@ std::string_view Debug::extractFileName(const char *fileName)
     return slash ? slash + 1 : fileName;
 }
 
+#ifdef CXXSTD_17
 std::string_view Debug::extractFunctionName(const char *functionName)
+#else
+std::string Debug::extractFunctionName(const char *functionName)
+#endif
 {
+#ifdef CXXSTD_17
     std::string_view fn(functionName);
-
+#else
+    std::string fn(functionName);
+#endif
     size_t start = fn.find_last_of(' ');
+
+#ifdef CXXSTD_17
     start = (start == std::string_view::npos) ? 0 : start + 1;
+#else
+    start = (start == std::string::npos) ? 0 : start + 1;
+#endif
 
     size_t end = fn.find('(', start);
 
+#ifdef CXXSTD_17
     return fn.substr(start, end == std::string_view::npos
                                 ? fn.size() - start
                                 : end - start);
+#else
+    return fn.substr(start, end == std::string::npos
+                                ? fn.size() - start
+                                : end - start);
+#endif
 }
 
 std::string Debug::generate(Debug::LogType_t type,

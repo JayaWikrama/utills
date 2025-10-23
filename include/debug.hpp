@@ -85,9 +85,15 @@ public:
 protected:
     size_t getMaxLineLogs();
     size_t getHistoriesNumber();
+#ifdef CXXSTD_17
     static std::string_view logTypeToString(LogType_t type);
     static std::string_view extractFileName(const char *fileName);
     static std::string_view extractFunctionName(const char *functionName);
+#else
+    static std::string logTypeToString(LogType_t type);
+    static std::string extractFileName(const char *fileName);
+    static std::string extractFunctionName(const char *functionName);
+#endif
     std::string generate(LogType_t type,
                          const char *functionName,
                          const char *format,
