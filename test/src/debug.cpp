@@ -131,3 +131,9 @@ TEST_CASE("Debug with 3 history lines size")
         CHECK(idx == 3);
     }
 }
+
+TEST_CASE("Static method generator")
+{
+    std::string gen = Debug::generate(Debug::INFO, __FILE__, __LINE__, "generator", "gcheck %d\n", 128);
+    CHECK(memcmp(gen.c_str() + 20, "[I]: debug.cpp:137 → generator: gcheck 128\n", 43) == 0);
+}
