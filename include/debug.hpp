@@ -69,6 +69,10 @@ public:
     void clearLogHistory();
 
     static void log(LogType_t type, const char *sourceName, int line, const char *functionName, const char *format, ...);
+    static void info(const char *sourceName, int line, const char *functionName, const char *format, ...);
+    static void warning(const char *sourceName, int line, const char *functionName, const char *format, ...);
+    static void error(const char *sourceName, int line, const char *functionName, const char *format, ...);
+    static void critical(const char *sourceName, int line, const char *functionName, const char *format, ...);
     static std::string generate(LogType_t type,
                                 const char *sourceName,
                                 int line,
@@ -85,6 +89,10 @@ public:
 protected:
     size_t getMaxLineLogs();
     size_t getHistoriesNumber();
+    std::string generate(LogType_t type,
+                         const char *functionName,
+                         const char *format,
+                         va_list args);
 #ifdef CXXSTD_17
     static std::string_view logTypeToString(LogType_t type);
     static std::string_view extractFileName(const char *fileName);
@@ -94,10 +102,6 @@ protected:
     static std::string extractFileName(const char *fileName);
     static std::string extractFunctionName(const char *functionName);
 #endif
-    std::string generate(LogType_t type,
-                         const char *functionName,
-                         const char *format,
-                         va_list args);
 };
 
 #endif
