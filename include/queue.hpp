@@ -1,6 +1,7 @@
 #ifndef __QUEUE_TEMPLATE_HPP__
 #define __QUEUE_TEMPLATE_HPP__
 
+#include <stdexcept>
 #include <functional>
 
 template <typename T>
@@ -87,7 +88,7 @@ public:
         return removedData;
     }
 
-    T &getFront()
+    T &getFront() const
     {
         if (isEmpty())
         {
@@ -96,22 +97,12 @@ public:
         return front->data;
     }
 
-    T &at(size_t index)
+    T &at(size_t index) const
     {
         return getNode(index)->data;
     }
 
-    T &operator[](size_t index)
-    {
-        return at(index);
-    }
-
-    const T &at(size_t index) const
-    {
-        return getNode(index)->data;
-    }
-
-    const T &operator[](size_t index) const
+    T &operator[](size_t index) const
     {
         return at(index);
     }

@@ -1,9 +1,6 @@
 #ifndef __BINARY_TREE_TEMPLATE_HPP__
 #define __BINARY_TREE_TEMPLATE_HPP__
 
-#include <iostream>
-#include <string>
-#include <vector>
 #include <functional>
 
 template <typename T>
@@ -61,16 +58,15 @@ private:
             return contains(node->right, val);
     }
 
-    Node<T> *find(Node<T> *node, const T &val)
+    Node<T> *find(Node<T> *node, const T &val) const
     {
         if (node == nullptr)
             return nullptr;
         if (val == node->data)
             return node;
-        else if (val < node->data)
+        if (val < node->data)
             return find(node->left, val);
-        else
-            return find(node->right, val);
+        return find(node->right, val);
     }
 
     Node<T> *remove(Node<T> *node, const T &val)
@@ -187,7 +183,7 @@ public:
         return root;
     }
 
-    Node<T> *find(const T &val)
+    Node<T> *find(const T &val) const
     {
         return find(root, val);
     }
