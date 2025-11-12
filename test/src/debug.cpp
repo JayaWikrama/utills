@@ -1,3 +1,4 @@
+#include <iostream>
 #include "modules.hpp"
 
 class DebugZeroLinesHistoryTestHelper : public Debug
@@ -132,8 +133,28 @@ TEST_CASE("Debug with 3 history lines size")
     }
 }
 
+TEST_CASE("Debug with hidden confidential")
+{
+    DebugWithSomeLinesHistoryTestHelper debug;
+
+    SUBCASE("Single confidential")
+    {
+        debug.setConfidential("token");
+        debug.log(Debug::INFO, "hcheck", "this token tiken\n");
+        CHECK(memcmp(debug.getLogHistory().c_str() + 20, "[I]: hcheck: this ***** tiken", 29) == 0);
+    }
+
+    SUBCASE("Multi confidential")
+    {
+        debug.setConfidential("token");
+        debug.setConfidential("tiken");
+        debug.log(Debug::INFO, "hcheck", "this token tiken\n");
+        CHECK(memcmp(debug.getLogHistory().c_str() + 20, "[I]: hcheck: this ***** *****", 29) == 0);
+    }
+}
+
 TEST_CASE("Static method generator")
 {
     std::string gen = Debug::generate(Debug::INFO, __FILE__, __LINE__, "generator", "gcheck %d\n", 128);
-    CHECK(memcmp(gen.c_str() + 20, "[I]: debug.cpp:137 → generator: gcheck 128\n", 43) == 0);
+    CHECK(memcmp(gen.c_str() + 20, "[I]: debug.cpp:158 → generator: gcheck 128\n", 43) == 0);
 }
