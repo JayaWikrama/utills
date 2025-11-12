@@ -57,6 +57,20 @@ Debug::~Debug()
     }
 }
 
+std::string Debug::hideConfidential(const std::string &input) const
+{
+    std::string result = input;
+    for (const std::string &conf : this->confidential)
+    {
+        size_t pos = input.find(conf);
+        if (pos != std::string::npos)
+        {
+            result.replace(pos, conf.length(), "*****");
+        }
+    }
+    return result;
+}
+
 size_t Debug::getMaxLineLogs()
 {
     return this->maxLineLogs;
@@ -143,8 +157,10 @@ void Debug::log(LogType_t type, const char *functionName, const char *format, ..
 {
     va_list args;
     va_start(args, format);
-    std::string logEntry = this->generate(type, functionName, format, args);
+    std::string logPayload = this->generate(type, functionName, format, args);
     va_end(args);
+
+    std::string logEntry = this->hideConfidential(logPayload);
 
     std::cout << logEntry;
 
@@ -208,6 +224,11 @@ void Debug::clearLogHistory()
         {
         }
     }
+}
+
+void Debug::setConfidential(const std::string &confidential)
+{
+    this->confidential.push_back(confidential);
 }
 
 void Debug::log(Debug::LogType_t type, const char *sourceName, int line, const char *functionName, const char *format, ...)

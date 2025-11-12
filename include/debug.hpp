@@ -49,6 +49,7 @@ class Debug
 private:
     size_t maxLineLogs;
     QueuePtr history;
+    std::vector<std::string> confidential;
     mutable std::mutex mutex;
 
 public:
@@ -67,12 +68,14 @@ public:
     std::string getLogHistory() const;
     void historyIteration(const std::function<bool(const char *)> &callback);
     void clearLogHistory();
+    void setConfidential(const std::string &confidential);
 
     static void log(LogType_t type, const char *sourceName, int line, const char *functionName, const char *format, ...);
     static void info(const char *sourceName, int line, const char *functionName, const char *format, ...);
     static void warning(const char *sourceName, int line, const char *functionName, const char *format, ...);
     static void error(const char *sourceName, int line, const char *functionName, const char *format, ...);
     static void critical(const char *sourceName, int line, const char *functionName, const char *format, ...);
+
     static std::string generate(LogType_t type,
                                 const char *sourceName,
                                 int line,
@@ -87,6 +90,8 @@ public:
                                 ...);
 
 protected:
+    std::string hideConfidential(const std::string &input) const;
+
     size_t getMaxLineLogs();
     size_t getHistoriesNumber();
     std::string generate(LogType_t type,
