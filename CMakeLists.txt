@@ -36,6 +36,7 @@ set(SOURCE_FILES
   src/string.cpp
   src/time.cpp
   src/error.cpp
+  src/json-validator.cpp
 )
 
 set(TEST_SOURCE_FILES
