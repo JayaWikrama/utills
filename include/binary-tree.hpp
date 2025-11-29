@@ -188,6 +188,22 @@ public:
         return find(root, val);
     }
 
+    bool find(const T &val, std::function<bool(T &)> callback) const
+    {
+        Node<T> *selected = find(root, val);
+        if (selected == nullptr)
+            return false;
+        return callback(selected->data);
+    }
+
+    bool find(const T &val, std::function<bool(T &)> callback)
+    {
+        Node<T> *selected = find(root, val);
+        if (selected == nullptr)
+            return false;
+        return callback(selected->data);
+    }
+
     void remove(const T &val)
     {
         root = remove(root, val);
