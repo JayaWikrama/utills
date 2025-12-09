@@ -350,7 +350,7 @@ std::string Debug::generate(Debug::LogType_t type,
     {
         result.resize(static_cast<size_t>(needed) + offset + 1);
         std::copy_n(localBuf.begin(), offset, result.begin());
-        std::vsnprintf(result.data() + offset, result.size() - offset, format, args);
+        std::vsnprintf((char *)(result.data() + offset), result.size() - offset, format, args);
     }
     return result;
 }
