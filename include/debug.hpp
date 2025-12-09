@@ -98,15 +98,8 @@ protected:
                          const char *functionName,
                          const char *format,
                          va_list args);
-#ifdef CXXSTD_17
-    static std::string_view logTypeToString(LogType_t type);
-    static std::string_view extractFileName(const char *fileName);
-    static std::string_view extractFunctionName(const char *functionName);
-#else
-    static std::string logTypeToString(LogType_t type);
-    static std::string extractFileName(const char *fileName);
-    static std::string extractFunctionName(const char *functionName);
-#endif
+    static const char logTypeToChar(LogType_t type);
+    static const char *extractFileName(const char *fileName);
 };
 
 #endif

@@ -29,6 +29,7 @@
 #include <cstring>
 #include <iomanip>
 #include <algorithm>
+#include <array>
 #include "debug.hpp"
 #include "queue.hpp"
 
@@ -87,62 +88,18 @@ size_t Debug::getHistoriesNumber()
     return 0;
 }
 
-#ifdef CXXSTD_17
-std::string_view Debug::logTypeToString(Debug::LogType_t type)
-#else
-std::string Debug::logTypeToString(Debug::LogType_t type)
-#endif
+const char Debug::logTypeToChar(Debug::LogType_t type)
 {
-#ifdef CXXSTD_17
-    static constexpr std::string_view logTypeStr[] = {"I", "W", "E", "C"};
-#else
-    static std::string logTypeStr[] = {"I", "W", "E", "C"};
-#endif
-    return logTypeStr[static_cast<int>(type)];
+    static const char *logTypeChar = "IWEC";
+    return logTypeChar[static_cast<int>(type)];
 }
 
-#ifdef CXXSTD_17
-std::string_view Debug::extractFileName(const char *fileName)
-#else
-std::string Debug::extractFileName(const char *fileName)
-#endif
+const char *Debug::extractFileName(const char *fileName)
 {
     const char *slash = strrchr(fileName, '/');
     if (!slash)
         slash = strrchr(fileName, '\\');
     return slash ? slash + 1 : fileName;
-}
-
-#ifdef CXXSTD_17
-std::string_view Debug::extractFunctionName(const char *functionName)
-#else
-std::string Debug::extractFunctionName(const char *functionName)
-#endif
-{
-#ifdef CXXSTD_17
-    std::string_view fn(functionName);
-#else
-    std::string fn(functionName);
-#endif
-    size_t start = fn.find_last_of(' ');
-
-#ifdef CXXSTD_17
-    start = (start == std::string_view::npos) ? 0 : start + 1;
-#else
-    start = (start == std::string::npos) ? 0 : start + 1;
-#endif
-
-    size_t end = fn.find('(', start);
-
-#ifdef CXXSTD_17
-    return fn.substr(start, end == std::string_view::npos
-                                ? fn.size() - start
-                                : end - start);
-#else
-    return fn.substr(start, end == std::string::npos
-                                ? fn.size() - start
-                                : end - start);
-#endif
 }
 
 std::string Debug::generate(Debug::LogType_t type,
@@ -281,26 +238,70 @@ std::string Debug::generate(Debug::LogType_t type,
     std::chrono::time_point<std::chrono::system_clock> tnow = std::chrono::system_clock::now();
     std::time_t now = std::chrono::system_clock::to_time_t(tnow);
     std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(tnow.time_since_epoch()) % 1000;
-    std::tm localTime;
+    std::tm localTime{};
 #if defined(_MSC_VER)
     localtime_s(&localTime, &now);
 #else
     localtime_r(&now, &localTime);
 #endif
 
+    std::array<char, 1024> localBuf{};
+    std::size_t offset = 27 + strlen(functionName);
+
+    if (sourceName)
+    {
+        char sourcen[128]{};
+        snprintf(sourcen, 127, "%s:%d → ", Debug::extractFileName(sourceName), line);
+        offset += strlen(sourcen);
+
+        std::snprintf(localBuf.data(), offset + 1,
+                      "[%02d%02d%02d_%02d%02d%02d.%03ld] [%c]: %s%s: ",
+                      (localTime.tm_year % 100),
+                      (localTime.tm_mon + 1),
+                      localTime.tm_mday,
+                      localTime.tm_hour,
+                      localTime.tm_min,
+                      localTime.tm_sec,
+                      static_cast<long>(ms.count()),
+                      Debug::logTypeToChar(type), sourcen, functionName);
+    }
+    else
+    {
+        std::snprintf(localBuf.data(), offset + 1,
+                      "[%02d%02d%02d_%02d%02d%02d.%03ld] [%c]: %s: ",
+                      (localTime.tm_year % 100),
+                      (localTime.tm_mon + 1),
+                      localTime.tm_mday,
+                      localTime.tm_hour,
+                      localTime.tm_min,
+                      localTime.tm_sec,
+                      static_cast<long>(ms.count()),
+                      Debug::logTypeToChar(type), functionName);
+    }
+
     va_list argsCopy;
     va_copy(argsCopy, args);
-    int size = std::vsnprintf(nullptr, 0, format, argsCopy) + 1;
+    int needed = std::vsnprintf(localBuf.data() + offset, localBuf.size() - offset, format, argsCopy);
     va_end(argsCopy);
 
-    std::vector<char> buffer(size);
-    std::vsnprintf(buffer.data(), size, format, args);
+    std::string result;
 
-    std::ostringstream oss;
-    oss << "[" << std::put_time(&localTime, "%y%m%d_%H%M%S") << '.' << std::setw(3) << std::setfill('0') << ms.count() << "] [" << Debug::logTypeToString(type) << "]: "
-        << (sourceName ? std::string(Debug::extractFileName(sourceName)) + (line > 0 ? ":" + std::to_string(line) + " → " : " → ") : "") << Debug::extractFunctionName(functionName) << ": " << buffer.data();
-
-    return oss.str();
+    if (needed < 0)
+    {
+        std::copy_n("[format-error]\n", 15, localBuf.data() + offset);
+        result.assign(localBuf.data(), strlen(localBuf.data()));
+    }
+    else if (static_cast<size_t>(needed + offset) < localBuf.size())
+    {
+        result.assign(localBuf.data(), static_cast<std::size_t>(needed + offset));
+    }
+    else
+    {
+        result.resize(static_cast<size_t>(needed) + offset + 1);
+        std::copy_n(localBuf.begin(), offset, result.begin());
+        std::vsnprintf(result.data() + offset, result.size() - offset, format, args);
+    }
+    return result;
 }
 
 std::string Debug::generate(LogType_t type,
