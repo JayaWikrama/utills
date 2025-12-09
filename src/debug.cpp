@@ -33,14 +33,11 @@
 #include "debug.hpp"
 #include "queue.hpp"
 
-typedef Queue<char *> QueueHistory;
-
 Debug::Debug(size_t maxLineLogs) : maxLineLogs(maxLineLogs)
 {
     if (this->maxLineLogs)
     {
-        QueueHistory *q = new QueueHistory;
-        this->history = (QueuePtr)q;
+        this->history = new Queue<char *>;
     }
     else
     {
@@ -53,8 +50,7 @@ Debug::~Debug()
     clearLogHistory();
     if (this->history)
     {
-        QueueHistory *q = (QueueHistory *)this->history;
-        delete q;
+        delete this->history;
     }
 }
 
@@ -82,8 +78,7 @@ size_t Debug::getHistoriesNumber()
     if (this->history)
     {
         std::lock_guard<std::mutex> lock(this->mutex);
-        QueueHistory *q = (QueueHistory *)this->history;
-        return q->size();
+        return this->history->size();
     }
     return 0;
 }
@@ -110,6 +105,25 @@ std::string Debug::generate(Debug::LogType_t type,
     return Debug::generate(type, nullptr, 0, functionName, format, args);
 }
 
+void Debug::cache(const std::string &payload)
+{
+    if (this->history)
+    {
+        char *line = new char[payload.length() + 1];
+        if (line)
+        {
+            strcpy(line, payload.c_str());
+            std::lock_guard<std::mutex> lock(this->mutex);
+            this->history->enqueue(line);
+            if (this->history->size() > maxLineLogs)
+            {
+                line = this->history->dequeue();
+                delete[] line;
+            }
+        }
+    }
+}
+
 void Debug::log(LogType_t type, const char *functionName, const char *format, ...)
 {
     va_list args;
@@ -117,26 +131,61 @@ void Debug::log(LogType_t type, const char *functionName, const char *format, ..
     std::string logPayload = this->generate(type, functionName, format, args);
     va_end(args);
 
-    std::string logEntry = this->hideConfidential(logPayload);
-
-    std::cout << logEntry;
-
-    if (this->history)
+    if (this->confidential.empty())
     {
-        char *line = new char[logEntry.length() + 1];
-        if (line)
-        {
-            strcpy(line, logEntry.c_str());
-            std::lock_guard<std::mutex> lock(this->mutex);
-            QueueHistory *q = (QueueHistory *)this->history;
-            q->enqueue(line);
-            if (q->size() > maxLineLogs)
-            {
-                line = q->dequeue();
-                delete[] line;
-            }
-        }
+        std::cout << logPayload;
+        this->cache(logPayload);
     }
+    else
+    {
+        std::string logEntry = this->hideConfidential(logPayload);
+        std::cout << logEntry;
+        this->cache(logEntry);
+    }
+}
+
+void Debug::info(const char *functionName, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    std::string logPayload = this->generate(Debug::INFO, functionName, format, args);
+    va_end(args);
+
+    std::cout << logPayload;
+    this->cache(logPayload);
+}
+
+void Debug::warning(const char *functionName, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    std::string logPayload = this->generate(Debug::WARNING, functionName, format, args);
+    va_end(args);
+
+    std::cout << logPayload;
+    this->cache(logPayload);
+}
+
+void Debug::error(const char *functionName, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    std::string logPayload = this->generate(Debug::ERROR, functionName, format, args);
+    va_end(args);
+
+    std::cout << logPayload;
+    this->cache(logPayload);
+}
+
+void Debug::critical(const char *functionName, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    std::string logPayload = this->generate(Debug::CRITICAL, functionName, format, args);
+    va_end(args);
+
+    std::cout << logPayload;
+    this->cache(logPayload);
 }
 
 std::string Debug::getLogHistory() const
@@ -145,11 +194,12 @@ std::string Debug::getLogHistory() const
     if (this->history)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        QueueHistory *q = (QueueHistory *)this->history;
-        q->iteration([&](const char *line)
-                     {
-                        oss << line;
-                        return true; });
+        this->history->iteration(
+            [&](const char *line)
+            {
+                oss << line;
+                return true;
+            });
     }
     return oss.str();
 }
@@ -159,9 +209,11 @@ void Debug::historyIteration(const std::function<bool(const char *)> &callback)
     if (this->history)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        QueueHistory *q = (QueueHistory *)this->history;
-        q->iteration([&](const char *line)
-                     { return callback(line); });
+        this->history->iteration(
+            [&](const char *line)
+            {
+                return callback(line);
+            });
     }
 }
 
@@ -171,10 +223,9 @@ void Debug::clearLogHistory()
     if (this->history)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        QueueHistory *q = (QueueHistory *)this->history;
         try
         {
-            line = q->dequeue();
+            line = this->history->dequeue();
             delete line;
         }
         catch (const std::exception &e)

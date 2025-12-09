@@ -42,13 +42,14 @@
 #ifndef __DEBUG_HPP__
 #define __DEBUG_HPP__
 
-typedef void *QueuePtr;
+template <typename T>
+class Queue;
 
 class Debug
 {
 private:
     size_t maxLineLogs;
-    QueuePtr history;
+    Queue<char *> *history;
     std::vector<std::string> confidential;
     mutable std::mutex mutex;
 
@@ -64,7 +65,14 @@ public:
     Debug(size_t maxLineLogs = 0);
     ~Debug();
 
+    void cache(const std::string &payload);
+
     void log(LogType_t type, const char *functionName, const char *format, ...);
+    void info(const char *functionName, const char *format, ...);
+    void warning(const char *functionName, const char *format, ...);
+    void error(const char *functionName, const char *format, ...);
+    void critical(const char *functionName, const char *format, ...);
+
     std::string getLogHistory() const;
     void historyIteration(const std::function<bool(const char *)> &callback);
     void clearLogHistory();
