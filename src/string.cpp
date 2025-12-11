@@ -141,7 +141,7 @@ std::string StringUtils::fromHex(const std::vector<unsigned char> &hex)
 {
     std::string output;
     output.resize((hex.size() * 2));
-    fromHex(output.data(), hex);
+    fromHex((char *)output.data(), hex);
     return output;
 }
 
