@@ -42,6 +42,7 @@ set(SOURCE_FILES
 set(TEST_SOURCE_FILES
   test/src/binary-tree.cpp
   test/src/time.cpp
+  test/src/string.cpp
   test/src/debug.cpp
 )
 
