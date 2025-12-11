@@ -15,9 +15,14 @@ public:
     static std::string trimRight(const std::string &str);
     static std::string trim(const std::string &str);
 
-    static std::string replaceAll(std::string str, const std::string &from, const std::string &to);
-    static std::string toHex(const std::string &input);
-    static std::string fromHex(const std::string &hex);
+    static std::string &replaceAll(std::string &str, const std::string &from, const std::string &to);
+    static std::string toHexString(const std::string &input);
+    static std::vector<unsigned char> toHexBin(const std::string &input);
+    static void fromHex(char *result, const unsigned char hex);
+    static void fromHex(char *result, const std::vector<unsigned char> &hex);
+    static std::string fromHex(const unsigned char hex);
+    static std::string fromHex(const std::vector<unsigned char> &hex);
+    static std::string fromHexString(const std::string &hex);
 
     static unsigned int toIPV4(const std::string &ipv4);
     static std::string fromIPV4(unsigned int ipv4);
@@ -34,6 +39,30 @@ public:
     static std::string join(const std::vector<std::string> &parts, const std::string &delimiter);
     static std::string replacePlaceholder(std::string str, const std::map<std::string, std::string> &values);
     static std::string replacePlaceholder(std::string str, const std::vector<std::string> &values);
+
+    static std::string fromHexToPrettyString(const std::vector<unsigned char> &hex);
+    template <std::size_t N>
+    static const char *fromHexToPrettyString(const unsigned char *hex, size_t sz)
+    {
+        static std::array<char, N * 3> arr;
+        if (sz == 0)
+        {
+            arr[0] = 0x00;
+            return arr.data();
+        }
+        if (N < sz)
+            sz = N;
+        unsigned short pos = 0;
+        for (unsigned short i = 0; i < sz; i++)
+        {
+            fromHex(arr.data() + pos, hex[i]);
+            pos += 2;
+            arr[pos] = 0x20;
+            pos++;
+        }
+        arr[pos - 1] = 0x00;
+        return arr.data();
+    }
 };
 
 #endif

@@ -43,7 +43,7 @@ std::string StringUtils::trim(const std::string &str)
     return StringUtils::trimRight(StringUtils::trimLeft(str));
 }
 
-std::string StringUtils::replaceAll(std::string str, const std::string &from, const std::string &to)
+std::string &StringUtils::replaceAll(std::string &str, const std::string &from, const std::string &to)
 {
     if (from.empty())
         return str;
@@ -56,21 +56,99 @@ std::string StringUtils::replaceAll(std::string str, const std::string &from, co
     return str;
 }
 
-std::string StringUtils::toHex(const std::string &input)
+std::string StringUtils::toHexString(const std::string &input)
 {
     std::ostringstream oss;
     oss << std::hex << std::setfill('0');
-    for (unsigned char c : input)
+    for (const unsigned char &c : input)
     {
         oss << std::setw(2) << static_cast<int>(c);
     }
     return oss.str();
 }
 
-std::string StringUtils::fromHex(const std::string &hex)
+std::vector<unsigned char> StringUtils::toHexBin(const std::string &hexString)
+{
+    std::vector<unsigned char> hex;
+    unsigned char h = 0x00;
+    unsigned char l = 0x00;
+    std::size_t sz = hexString.size() % 2;
+    if (sz != 0)
+        return hex;
+    hex.reserve(sz);
+    sz = hexString.size();
+    for (int i = 0; i < sz; i++)
+    {
+        /* high nibble */
+        if (hexString[i] >= 0x30 && hexString[i] <= 0x39)
+            h = hexString[i] - 0x30;
+        else if (hexString[i] >= 0x41 && hexString[i] <= 0x5A)
+            h = hexString[i] - 0x41 + 0x0A;
+        else if (hexString[i] >= 0x61 && hexString[i] <= 0x7A)
+            h = hexString[i] - 0x61 + 0x0A;
+        else
+        {
+            hex.clear();
+            return hex;
+        }
+        /* low nibble */
+        i++;
+        if (hexString[i] >= 0x30 && hexString[i] <= 0x39)
+            l = hexString[i] - 0x30;
+        else if (hexString[i] >= 0x41 && hexString[i] <= 0x5A)
+            l = hexString[i] - 0x41 + 0x0A;
+        else if (hexString[i] >= 0x61 && hexString[i] <= 0x7A)
+            l = hexString[i] - 0x61 + 0x0A;
+        else
+        {
+            hex.clear();
+            return hex;
+        }
+        hex.push_back(h << 4 | l);
+    }
+    return hex;
+}
+
+void StringUtils::fromHex(char *result, const unsigned char hex)
+{
+    unsigned char hNibble = (hex >> 4) & 0x0F;
+    unsigned char lNibble = hex & 0x0F;
+    hNibble += (hNibble < 0x0A ? 0x30 : 0x37);
+    lNibble += (lNibble < 0x0A ? 0x30 : 0x37);
+    result[0] = hNibble;
+    result[1] = lNibble;
+}
+
+void StringUtils::fromHex(char *result, const std::vector<unsigned char> &hex)
+{
+    std::size_t pos = 0;
+    for (const unsigned char &c : hex)
+    {
+        fromHex(result + pos, c);
+        pos += 2;
+    }
+}
+
+std::string StringUtils::fromHex(const unsigned char hex)
+{
+    char result[3];
+    StringUtils::fromHex(result, hex);
+    result[2] = 0x00;
+    return result;
+}
+
+std::string StringUtils::fromHex(const std::vector<unsigned char> &hex)
+{
+    std::string output;
+    output.resize((hex.size() * 2));
+    fromHex(output.data(), hex);
+    return output;
+}
+
+std::string StringUtils::fromHexString(const std::string &hex)
 {
     if (hex.size() % 2 != 0)
-        throw std::invalid_argument("Invalid hex length");
+        return "";
     std::string output;
     output.reserve(hex.size() / 2);
     for (size_t i = 0; i < hex.size(); i += 2)
@@ -79,6 +157,20 @@ std::string StringUtils::fromHex(const std::string &hex)
         char byte = static_cast<char>(strtol(byteString.c_str(), nullptr, 16));
         output.push_back(byte);
     }
+    return output;
+}
+
+std::string StringUtils::fromHexToPrettyString(const std::vector<unsigned char> &hex)
+{
+    std::string output;
+    char tmp[3] = {0x00, 0x00, 0x20};
+    output.reserve(hex.size() * 3);
+    for (const unsigned char &c : hex)
+    {
+        fromHex(tmp, c);
+        output.insert(output.end(), tmp, tmp + 3);
+    }
+    output.pop_back();
     return output;
 }
 
