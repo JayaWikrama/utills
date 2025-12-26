@@ -33,26 +33,13 @@
 #include "debug.hpp"
 #include "queue.hpp"
 
-Debug::Debug(size_t maxLineLogs) : maxLineLogs(maxLineLogs)
-{
-    if (this->maxLineLogs)
-    {
-        this->history = new Queue<char *>;
-    }
-    else
-    {
-        this->history = nullptr;
-    }
-}
+std::size_t Debug::maxLineLogs = 0;
+std::deque<std::string> Debug::history;
+std::mutex Debug::mutex;
 
-Debug::~Debug()
-{
-    clearLogHistory();
-    if (this->history)
-    {
-        delete this->history;
-    }
-}
+Debug::Debug() : confidential() {}
+
+Debug::~Debug() {}
 
 std::string Debug::hideConfidential(const std::string &input) const
 {
@@ -75,10 +62,10 @@ size_t Debug::getMaxLineLogs()
 
 size_t Debug::getHistoriesNumber()
 {
-    if (this->history)
+    if (this->maxLineLogs)
     {
         std::lock_guard<std::mutex> lock(this->mutex);
-        return this->history->size();
+        return this->history.size();
     }
     return 0;
 }
@@ -107,20 +94,12 @@ std::string Debug::generate(Debug::LogType_t type,
 
 void Debug::cache(const std::string &payload)
 {
-    if (this->history)
+    if (this->maxLineLogs)
     {
-        char *line = new char[payload.length() + 1];
-        if (line)
-        {
-            strcpy(line, payload.c_str());
-            std::lock_guard<std::mutex> lock(this->mutex);
-            this->history->enqueue(line);
-            if (this->history->size() > maxLineLogs)
-            {
-                line = this->history->dequeue();
-                delete[] line;
-            }
-        }
+        std::lock_guard<std::mutex> lock(mutex);
+        if (this->history.size() >= this->maxLineLogs)
+            this->history.pop_front();
+        this->history.emplace_back(payload);
     }
 }
 
@@ -188,55 +167,56 @@ void Debug::critical(const char *functionName, const char *format, ...)
     this->cache(logPayload);
 }
 
-std::string Debug::getLogHistory() const
+std::string Debug::getLogHistory()
 {
     std::ostringstream oss;
-    if (this->history)
+    if (Debug::maxLineLogs)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        this->history->iteration(
-            [&](const char *line)
-            {
-                oss << line;
-                return true;
-            });
+        for (const std::string &s : Debug::history)
+        {
+            oss << s;
+        }
     }
     return oss.str();
 }
 
 void Debug::historyIteration(const std::function<bool(const char *)> &callback)
 {
-    if (this->history)
+    if (Debug::maxLineLogs)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        this->history->iteration(
-            [&](const char *line)
-            {
-                return callback(line);
-            });
+        for (const std::string &s : Debug::history)
+        {
+            callback(s.c_str());
+        }
     }
 }
 
 void Debug::clearLogHistory()
 {
-    char *line = nullptr;
-    if (this->history)
-    {
-        std::lock_guard<std::mutex> lock(mutex);
-        try
-        {
-            line = this->history->dequeue();
-            delete line;
-        }
-        catch (const std::exception &e)
-        {
-        }
-    }
+    Debug::history.clear();
 }
 
 void Debug::setConfidential(const std::string &confidential)
 {
     this->confidential.push_back(confidential);
+}
+
+void Debug::setMaxLinesLogCache(std::size_t max)
+{
+    Debug::maxLineLogs = max;
+    if (Debug::maxLineLogs == 0)
+        Debug::history.clear();
+    else if (Debug::maxLineLogs == Debug::history.size())
+        Debug::history.pop_front();
+    else if (Debug::maxLineLogs < Debug::history.size())
+    {
+        while (!(Debug::history.size() < Debug::maxLineLogs))
+        {
+            Debug::history.pop_front();
+        }
+    }
 }
 
 void Debug::log(Debug::LogType_t type, const char *sourceName, int line, const char *functionName, const char *format, ...)

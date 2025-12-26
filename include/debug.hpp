@@ -33,14 +33,15 @@
  * @author Jaya Wikrama
  */
 
+#ifndef __DEBUG_HPP__
+#define __DEBUG_HPP__
+
 #include <string>
 #include <vector>
 #include <mutex>
 #include <functional>
 #include <cstdarg>
-
-#ifndef __DEBUG_HPP__
-#define __DEBUG_HPP__
+#include <deque>
 
 template <typename T>
 class Queue;
@@ -48,10 +49,11 @@ class Queue;
 class Debug
 {
 private:
-    size_t maxLineLogs;
-    Queue<char *> *history;
     std::vector<std::string> confidential;
-    mutable std::mutex mutex;
+
+    static std::size_t maxLineLogs;
+    static std::deque<std::string> history;
+    static std::mutex mutex;
 
 public:
     enum LogType_t
@@ -62,7 +64,7 @@ public:
         CRITICAL = 3
     };
 
-    Debug(size_t maxLineLogs = 0);
+    Debug();
     ~Debug();
 
     void cache(const std::string &payload);
@@ -73,10 +75,12 @@ public:
     void error(const char *functionName, const char *format, ...);
     void critical(const char *functionName, const char *format, ...);
 
-    std::string getLogHistory() const;
-    void historyIteration(const std::function<bool(const char *)> &callback);
-    void clearLogHistory();
     void setConfidential(const std::string &confidential);
+
+    static void setMaxLinesLogCache(std::size_t max);
+    static void clearLogHistory();
+    static std::string getLogHistory();
+    static void historyIteration(const std::function<bool(const char *)> &callback);
 
     static void log(LogType_t type, const char *sourceName, int line, const char *functionName, const char *format, ...);
     static void info(const char *sourceName, int line, const char *functionName, const char *format, ...);
