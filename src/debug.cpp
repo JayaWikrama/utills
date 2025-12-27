@@ -31,10 +31,11 @@
 #include <algorithm>
 #include <array>
 #include "debug.hpp"
-#include "queue.hpp"
+#include "txtlog.hpp"
 
 std::size_t Debug::maxLineLogs = 0;
 std::deque<std::string> Debug::history;
+std::unique_ptr<TXTLog> Debug::txtlog;
 std::mutex Debug::mutex;
 
 Debug::Debug() : confidential() {}
@@ -347,4 +348,20 @@ std::string Debug::generate(LogType_t type,
     std::string result = Debug::generate(type, sourceName, line, functionName, format, args);
     va_end(args);
     return result;
+}
+
+void Debug::setupTXTLogFile(const std::string &workingDirectory,
+                            const std::string &baseFileName,
+                            std::size_t maxFileSize,
+                            std::size_t maxTxtBackups,
+                            std::size_t maxArchiveFiles)
+{
+    Debug::txtlog.reset(new TXTLog(workingDirectory, baseFileName, maxFileSize, maxTxtBackups, maxArchiveFiles));
+}
+
+void Debug::moveLogHistoryToFile()
+{
+    std::string toWrite = Debug::getLogHistory();
+    Debug::clearLogHistory();
+    Debug::txtlog->write(toWrite);
 }

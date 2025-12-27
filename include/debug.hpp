@@ -42,9 +42,9 @@
 #include <functional>
 #include <cstdarg>
 #include <deque>
+#include <memory>
 
-template <typename T>
-class Queue;
+class TXTLog;
 
 class Debug
 {
@@ -53,6 +53,7 @@ private:
 
     static std::size_t maxLineLogs;
     static std::deque<std::string> history;
+    static std::unique_ptr<TXTLog> txtlog;
     static std::mutex mutex;
 
 public:
@@ -100,6 +101,14 @@ public:
                                 const char *functionName,
                                 const char *format,
                                 ...);
+
+    static void setupTXTLogFile(const std::string &workingDirectory = ".",
+                                const std::string &baseFileName = "log",
+                                std::size_t maxFileSize = 20971520,
+                                std::size_t maxTxtBackups = 3,
+                                std::size_t maxArchiveFiles = 10);
+
+    static void moveLogHistoryToFile();
 
 protected:
     std::string hideConfidential(const std::string &input) const;

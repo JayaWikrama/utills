@@ -33,6 +33,7 @@ endif()
 # Define source files
 set(SOURCE_FILES
   src/debug.cpp
+  src/txtlog.cpp
   src/string.cpp
   src/time.cpp
   src/error.cpp
@@ -75,6 +76,7 @@ target_include_directories(${PROJECT_NAME}-test PUBLIC ${INCLUDE_DIRS})
 add_dependencies(${PROJECT_NAME}-lib ${PROJECT_NAME}-ar)
 
 target_link_libraries(${PROJECT_NAME}-test PRIVATE ${PROJECT_NAME}-ar)
+target_link_libraries(${PROJECT_NAME}-test PUBLIC lzma)
 
 # Compiler and linker flags
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
