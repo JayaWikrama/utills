@@ -361,7 +361,10 @@ void Debug::setupTXTLogFile(const std::string &workingDirectory,
 
 void Debug::moveLogHistoryToFile()
 {
-    std::string toWrite = Debug::getLogHistory();
-    Debug::clearLogHistory();
-    Debug::txtlog->write(toWrite);
+    if (Debug::txtlog.get())
+    {
+        std::string toWrite = Debug::getLogHistory();
+        Debug::clearLogHistory();
+        Debug::txtlog->write(toWrite);
+    }
 }
