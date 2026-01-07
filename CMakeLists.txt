@@ -59,6 +59,7 @@ add_library(${PROJECT_NAME}-lib SHARED $<TARGET_OBJECTS:${PROJECT_NAME}-obj>)
 set_target_properties(${PROJECT_NAME}-lib PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 # Create test executables
+add_executable(${PROJECT_NAME}-logger tools/logger.cpp)
 add_executable(${PROJECT_NAME}-test test/main.cpp ${TEST_SOURCE_FILES})
 
 # Include directories for the project
@@ -75,6 +76,8 @@ target_include_directories(${PROJECT_NAME}-test PUBLIC ${INCLUDE_DIRS})
 # Add dependencies for examples
 add_dependencies(${PROJECT_NAME}-lib ${PROJECT_NAME}-ar)
 
+target_link_libraries(${PROJECT_NAME}-logger PRIVATE ${PROJECT_NAME}-ar)
+target_link_libraries(${PROJECT_NAME}-logger PUBLIC lzma)
 target_link_libraries(${PROJECT_NAME}-test PRIVATE ${PROJECT_NAME}-ar)
 target_link_libraries(${PROJECT_NAME}-test PUBLIC lzma)
 
