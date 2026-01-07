@@ -95,12 +95,12 @@ std::string Debug::generate(Debug::LogType_t type,
 
 void Debug::cache(const std::string &payload)
 {
-    if (this->maxLineLogs)
+    if (Debug::maxLineLogs)
     {
         std::lock_guard<std::mutex> lock(mutex);
-        if (this->history.size() >= this->maxLineLogs)
-            this->history.pop_front();
-        this->history.emplace_back(payload);
+        if (Debug::history.size() >= Debug::maxLineLogs)
+            Debug::history.pop_front();
+        Debug::history.emplace_back(payload);
     }
 }
 
@@ -224,40 +224,55 @@ void Debug::log(Debug::LogType_t type, const char *sourceName, int line, const c
 {
     va_list args;
     va_start(args, format);
-    std::cout << Debug::generate(type, sourceName, line, functionName, format, args);
+    std::string logPayload = Debug::generate(type, sourceName, line, functionName, format, args);
     va_end(args);
+
+    std::cout << logPayload;
+    Debug::cache(logPayload);
 }
 
 void Debug::info(const char *sourceName, int line, const char *functionName, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    std::cout << Debug::generate(Debug::INFO, sourceName, line, functionName, format, args);
+    std::string logPayload = Debug::generate(Debug::INFO, sourceName, line, functionName, format, args);
     va_end(args);
+
+    std::cout << logPayload;
+    Debug::cache(logPayload);
 }
 
 void Debug::warning(const char *sourceName, int line, const char *functionName, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    std::cout << Debug::generate(Debug::WARNING, sourceName, line, functionName, format, args);
+    std::string logPayload = Debug::generate(Debug::WARNING, sourceName, line, functionName, format, args);
     va_end(args);
+
+    std::cout << logPayload;
+    Debug::cache(logPayload);
 }
 
 void Debug::error(const char *sourceName, int line, const char *functionName, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    std::cout << Debug::generate(Debug::ERROR, sourceName, line, functionName, format, args);
+    std::string logPayload = Debug::generate(Debug::ERROR, sourceName, line, functionName, format, args);
     va_end(args);
+
+    std::cout << logPayload;
+    Debug::cache(logPayload);
 }
 
 void Debug::critical(const char *sourceName, int line, const char *functionName, const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    std::cout << Debug::generate(Debug::CRITICAL, sourceName, line, functionName, format, args);
+    std::string logPayload = Debug::generate(Debug::CRITICAL, sourceName, line, functionName, format, args);
     va_end(args);
+
+    std::cout << logPayload;
+    Debug::cache(logPayload);
 }
 
 std::string Debug::generate(Debug::LogType_t type,

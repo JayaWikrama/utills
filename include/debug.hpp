@@ -68,8 +68,6 @@ public:
     Debug();
     ~Debug();
 
-    void cache(const std::string &payload);
-
     void log(LogType_t type, const char *functionName, const char *format, ...);
     void info(const char *functionName, const char *format, ...);
     void warning(const char *functionName, const char *format, ...);
@@ -78,6 +76,7 @@ public:
 
     void setConfidential(const std::string &confidential);
 
+    static void cache(const std::string &payload);
     static void setMaxLinesLogCache(std::size_t max);
     static void clearLogHistory();
     static std::string getLogHistory();

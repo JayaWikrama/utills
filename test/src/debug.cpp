@@ -28,8 +28,8 @@ public:
     DebugWithSomeLinesHistoryTestHelper()
     {
         Debug::setMaxLinesLogCache(3);
-        Debug::clearLogHistory();
         Debug::setupTXTLogFile("./log", "test", 1024);
+        Debug::clearLogHistory();
     }
 
     ~DebugWithSomeLinesHistoryTestHelper()
