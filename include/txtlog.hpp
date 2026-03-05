@@ -150,6 +150,89 @@ private:
      */
     void maintainArchivedBackups();
 
+    /**
+     * @brief Extract archive from the given files.
+     *
+     * @param xzFile The archive file path.
+     * @param outputFile The txt file name as output file name.
+     *
+     * @return true if success.
+     * @return false on fail.
+     */
+    bool extractXzToFile(const std::string &xzFile, const std::string &outputFile);
+
+#ifndef __DISABLE_MINIZIP
+    /**
+     * @brief Adds a single file from the filesystem into an opened ZIP archive.
+     *
+     * This method reads the content of a given file in binary mode and writes it
+     * as a new entry inside an already opened ZIP archive using the minizip API.
+     *
+     * The ZIP archive handle must be valid and previously created using
+     * zipOpen() or zipOpen64(). The function will:
+     *
+     * 1. Open the source file specified by @p filePath.
+     * 2. Create a new file entry inside the ZIP archive with the name @p entryName.
+     * 3. Stream the file content into the ZIP archive using deflate compression.
+     * 4. Close the ZIP entry properly.
+     *
+     * Compression method:
+     * - Z_DEFLATED
+     * - Z_DEFAULT_COMPRESSION
+     *
+     * The method performs streaming writes using a fixed-size buffer to avoid
+     * loading the entire file into memory.
+     *
+     * @param zipHandle Opaque pointer to an opened ZIP archive (zipFile).
+     * @param filePath Absolute or relative filesystem path of the source file to be added into the archive.
+     * @param entryName The name of the file entry inside the ZIP archive.
+     *
+     * @return true if success.
+     * @return false on fail.
+     */
+    bool addFileToZip(void *zipHandle, const std::string &filePath, const std::string &entryName);
+
+    /**
+     * @brief Recursively traverses a directory and adds its contents to an open ZIP archive.
+     *
+     * This internal helper method performs a depth-first traversal of a directory
+     * structure starting from @p currentPath and adds all regular files into the
+     * specified ZIP archive.
+     *
+     * The method preserves the relative directory structure inside the ZIP file.
+     * The relative path of each entry is computed using @p basePath as the root.
+     *
+     * Behavior:
+     * - Iterates over all directory entries in @p currentPath.
+     * - Skips "." and "..".
+     * - If an entry is a subdirectory, the function calls itself recursively.
+     * - If an entry is a regular file (S_ISREG), it is added to the ZIP archive
+     *   using addFileToZip().
+     * - Symbolic links and non-regular files are ignored.
+     *
+     * Path Handling:
+     * - basePath represents the root directory of the archive.
+     * - currentPath represents the directory currently being traversed.
+     * - The ZIP entry name is computed as:
+     *
+     *       relativePath = fullPath.substr(basePath.length() + 1)
+     *
+     *   ensuring the archive structure mirrors the folder hierarchy.
+     *
+     * @param zipHandle Opaque pointer to an opened ZIP archive (zipFile).
+     * @param basePath Root directory used to compute relative paths inside the archive.
+     * @param currentPath The directory currently being scanned. During recursion, this value changes to represent subdirectories.
+     *
+     * @retval true when all files and subdirectories were successfully added to the archive.
+     *
+     * @retval false when Traversal failed due to:
+     *         - Inability to open a directory.
+     *         - Failure while adding a file into the ZIP archive.
+     *         - Filesystem access error.
+     */
+    bool addFolderToZip(void *zipHandle, const std::string &basePath, const std::string &currentPath);
+#endif
+
     /* ================= Utility ================= */
 
     /**
@@ -191,7 +274,7 @@ public:
      * @param maxArchiveFiles    Maximum number of backup archive files.
      */
     TXTLog(const std::string &workingDirectory = ".",
-           const std::string &baseFileName = "log.txt",
+           const std::string &baseFileName = "log.log",
            std::size_t maxFileSize = 20971520,
            std::size_t maxTxtBackups = 3,
            std::size_t maxArchiveFiles = 10);
@@ -237,6 +320,53 @@ public:
      * @return Maximum file size in bytes.
      */
     std::size_t getMaxFileSize() const;
+
+#ifndef __DISABLE_MINIZIP
+    /**
+     * @brief Creates a ZIP snapshot containing all currently stored log files.
+     *
+     * This method generates a consolidated ZIP archive that contains:
+     *
+     * 1. All active and rotated plain-text log files (.log) currently present
+     *    in the working directory.
+     * 2. All archived log files (.xz), which are first decompressed into
+     *    temporary .log files before being added into the ZIP archive.
+     *
+     * Workflow:
+     * - Acquire internal mutex to ensure thread safety during snapshot creation.
+     * - Enumerate all available .log files (including the active log file).
+     * - Add each .log file directly into the ZIP archive.
+     * - Enumerate all .xz archive files.
+     * - For each .xz file:
+     *      a. Decompress into a temporary .log file.
+     *      b. Add the temporary file into the ZIP archive.
+     *      c. Remove the temporary extracted file immediately after insertion.
+     * - Close the ZIP archive.
+     *
+     * The resulting ZIP archive will contain only .log entries,
+     * regardless of whether their source was a plain log file or an .xz archive.
+     *
+     * @param zipFilePath Absolute or relative path where the resulting ZIP archive will be created.
+     *
+     * @return true if success.
+     * @return false on fail.
+     */
+    bool createZipSnapshot(const std::string &zipFilePath);
+
+    /**
+     * @brief Compresses an entire directory into a ZIP archive.
+     *
+     * Recursively traverses the specified directory and adds all regular files
+     * into a newly created ZIP archive while preserving relative paths.
+     *
+     * @param folderPath   Path to the directory to compress.
+     * @param zipFilePath  Output ZIP file path.
+     *
+     * @retval true  Folder successfully archived.
+     * @retval false Failure occurred during traversal or compression.
+     */
+    bool zipFolder(const std::string &folderPath, const std::string &zipFilePath);
+#endif
 };
 
 #endif

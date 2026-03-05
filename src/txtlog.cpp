@@ -4,6 +4,9 @@
 #include <dirent.h>
 
 #include <lzma.h>
+#ifndef __DISABLE_MINIZIP
+#include <minizip/zip.h>
+#endif
 #include <fstream>
 
 #include <ctime>
@@ -33,7 +36,7 @@ TXTLog::TXTLog(const std::string &workingDirectory,
                                               maxArchiveFiles(maxArchiveFiles),
                                               mutex()
 {
-    this->activeFilePath = workingDirectory + "/" + baseFileName + ".txt";
+    this->activeFilePath = workingDirectory + "/" + baseFileName + ".log";
     this->openActiveFile();
     this->rotateIfNeeded();
 }
@@ -168,7 +171,7 @@ std::string TXTLog::generateTimestampedBackupName() const
                   "_%Y%m%d.%H%M%S", &tmNow);
 
     std::ostringstream oss;
-    oss << this->workingDirectory << "/" << this->baseFileName << buffer << ".txt";
+    oss << this->workingDirectory << "/" << this->baseFileName << buffer << ".log";
     return oss.str();
 }
 
@@ -305,6 +308,157 @@ void TXTLog::maintainArchivedBackups()
     Debug::info(__FILE__, __LINE__, __func__, "success\n");
 }
 
+bool TXTLog::extractXzToFile(const std::string &xzFile, const std::string &outputFile)
+{
+    std::ifstream input(xzFile, std::ios::binary);
+    std::ofstream output(outputFile, std::ios::binary);
+
+    if (!input || !output)
+        return false;
+
+    lzma_stream stream = LZMA_STREAM_INIT;
+    if (lzma_stream_decoder(&stream, UINT64_MAX, 0) != LZMA_OK)
+        return false;
+
+    const std::size_t bufferSize = 4096;
+    std::vector<uint8_t> inBuffer(bufferSize);
+    std::vector<uint8_t> outBuffer(bufferSize);
+
+    lzma_action action = LZMA_RUN;
+    bool done = false;
+
+    while (!done)
+    {
+        if (!input.eof())
+        {
+            input.read(reinterpret_cast<char *>(inBuffer.data()), bufferSize);
+            stream.avail_in = input.gcount();
+            stream.next_in = inBuffer.data();
+        }
+        else
+        {
+            stream.avail_in = 0;
+            action = LZMA_FINISH;
+        }
+
+        do
+        {
+            stream.avail_out = bufferSize;
+            stream.next_out = outBuffer.data();
+
+            lzma_ret ret = lzma_code(&stream, action);
+
+            std::size_t writeSize = bufferSize - stream.avail_out;
+            output.write(reinterpret_cast<char *>(outBuffer.data()), writeSize);
+
+            if (ret == LZMA_STREAM_END)
+            {
+                done = true;
+                break;
+            }
+            else if (ret != LZMA_OK)
+            {
+                lzma_end(&stream);
+                return false;
+            }
+
+        } while (stream.avail_out == 0);
+    }
+
+    lzma_end(&stream);
+    return true;
+}
+
+#ifndef __DISABLE_MINIZIP
+bool TXTLog::addFileToZip(void *zipHandle, const std::string &filePath, const std::string &entryName)
+{
+    zipFile zf = static_cast<zipFile>(zipHandle);
+
+    std::ifstream input(filePath, std::ios::binary);
+    if (!input)
+        return false;
+
+    zip_fileinfo zi = {};
+    if (zipOpenNewFileInZip(zf,
+                            entryName.c_str(),
+                            &zi,
+                            nullptr, 0,
+                            nullptr, 0,
+                            nullptr,
+                            Z_DEFLATED,
+                            Z_DEFAULT_COMPRESSION) != ZIP_OK)
+        return false;
+
+    const std::size_t bufferSize = 4096;
+    char buffer[bufferSize];
+
+    while (!input.eof())
+    {
+        input.read(buffer, bufferSize);
+        std::size_t readSize = input.gcount();
+
+        if (readSize > 0)
+        {
+            if (zipWriteInFileInZip(zf, buffer, readSize) < 0)
+            {
+                zipCloseFileInZip(zf);
+                return false;
+            }
+        }
+    }
+
+    zipCloseFileInZip(zf);
+    return true;
+}
+
+bool TXTLog::addFolderToZip(void *zipHandle, const std::string &basePath, const std::string &currentPath)
+{
+    zipFile zf = static_cast<zipFile>(zipHandle);
+
+    DIR *dir = ::opendir(currentPath.c_str());
+    if (!dir)
+        return false;
+
+    struct dirent *entry;
+
+    while ((entry = ::readdir(dir)) != nullptr)
+    {
+        std::string name(entry->d_name);
+
+        if (name == "." || name == "..")
+            continue;
+
+        std::string fullPath = currentPath + "/" + name;
+
+        struct stat st;
+        if (::stat(fullPath.c_str(), &st) != 0)
+            continue;
+
+        if (S_ISDIR(st.st_mode))
+        {
+            if (!addFolderToZip(zipHandle, basePath, fullPath))
+            {
+                ::closedir(dir);
+                return false;
+            }
+        }
+        else if (S_ISREG(st.st_mode))
+        {
+            std::string relativePath = fullPath.substr(basePath.length() + 1);
+
+            if (!this->addFileToZip(zf, fullPath, relativePath))
+            {
+                ::closedir(dir);
+                return false;
+            }
+        }
+    }
+
+    ::closedir(dir);
+    return true;
+}
+#endif
+
 /* ================= Utility ================= */
 
 std::uintmax_t TXTLog::getCurrentFileSize() const
@@ -331,7 +485,7 @@ std::vector<std::string> TXTLog::listBackupFiles() const
     while ((entry = ::readdir(dp)) != nullptr)
     {
         std::string name(entry->d_name);
-        if (name.find(this->baseFileName) == 0 && name.find(".txt") != std::string::npos)
+        if (name.find(this->baseFileName) == 0 && name.find(".log") != std::string::npos)
         {
             result.push_back(this->workingDirectory + "/" + name);
         }
@@ -373,3 +527,59 @@ void TXTLog::removeFiles(const std::vector<std::string> &files)
         ::unlink(file.c_str());
     }
 }
+
+#ifndef __DISABLE_MINIZIP
+bool TXTLog::createZipSnapshot(const std::string &zipFilePath)
+{
+    std::lock_guard<std::mutex> lock(this->mutex);
+
+    zipFile zf = zipOpen(zipFilePath.c_str(), APPEND_STATUS_CREATE);
+    if (!zf)
+        return false;
+
+    std::vector<std::string> txtFiles = this->listBackupFiles();
+    txtFiles.push_back(this->activeFilePath);
+
+    for (const auto &file : txtFiles)
+    {
+        std::string entryName = file.substr(file.find_last_of("/\\") + 1);
+        if (!this->addFileToZip(zf, file, entryName))
+        {
+            zipClose(zf, nullptr);
+            return false;
+        }
+    }
+
+    std::vector<std::string> archiveFiles = this->listArchiveFiles();
+
+    for (const auto &xzFile : archiveFiles)
+    {
+        std::string tempTxt = xzFile.substr(0, xzFile.length() - 3) + ".log";
+
+        if (!this->extractXzToFile(xzFile, tempTxt))
+            continue;
+
+        std::string entryName = tempTxt.substr(tempTxt.find_last_of("/\\") + 1);
+        this->addFileToZip(zf, tempTxt, entryName);
+
+        ::unlink(tempTxt.c_str());
+    }
+
+    zipClose(zf, nullptr);
+    return true;
+}
+
+bool TXTLog::zipFolder(const std::string &folderPath, const std::string &zipFilePath)
+{
+    std::lock_guard<std::mutex> lock(this->mutex);
+
+    zipFile zf = zipOpen64(zipFilePath.c_str(), APPEND_STATUS_CREATE);
+    if (!zf)
+        return false;
+
+    bool result = this->addFolderToZip(zf, folderPath, folderPath);
+
+    zipClose(zf, nullptr);
+    return result;
+}
+#endif

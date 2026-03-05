@@ -5,7 +5,7 @@ project(utils LANGUAGES C CXX)
 
 # Define versioning variables
 set(PROJECT_VERSION_MAJOR "1")
-set(PROJECT_VERSION_MINOR "0")
+set(PROJECT_VERSION_MINOR "1")
 set(PROJECT_VERSION_PATCH "0")
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
@@ -28,6 +28,15 @@ endif()
 option(VERBOSE "Enable verbose compile" OFF)
 if(VERBOSE)
   set(CMAKE_VERBOSE_MAKEFILE ON)
+endif()
+
+# miniZIP dependency option
+option(DISABLE_MINIZIP "build utlis without ZIP compression tools" ON)
+if(NOT DISABLE_MINIZIP)
+  message(STATUS "Enable ZIP compression feature")
+else()
+  message(STATUS "Disable ZIP compression feature")
+  add_definitions(-D__DISABLE_MINIZIP)
 endif()
 
 # Define source files
@@ -78,8 +87,14 @@ add_dependencies(${PROJECT_NAME}-lib ${PROJECT_NAME}-ar)
 
 target_link_libraries(${PROJECT_NAME}-logger PRIVATE ${PROJECT_NAME}-ar)
 target_link_libraries(${PROJECT_NAME}-logger PUBLIC lzma)
+if(NOT DISABLE_MINIZIP)
+  target_link_libraries(${PROJECT_NAME}-logger PUBLIC minizip z)
+endif()
 target_link_libraries(${PROJECT_NAME}-test PRIVATE ${PROJECT_NAME}-ar)
 target_link_libraries(${PROJECT_NAME}-test PUBLIC lzma)
+if(NOT DISABLE_MINIZIP)
+  target_link_libraries(${PROJECT_NAME}-test PUBLIC minizip z)
+endif()
 
 # Compiler and linker flags
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
