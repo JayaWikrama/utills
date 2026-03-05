@@ -11,7 +11,7 @@
 void TimeUtils::nowLocal(std::tm *result)
 {
     std::time_t t = std::time(nullptr);
-    memcpy(result, std::localtime(&t), sizeof(std::tm));
+    localtime_r(&t, result);
 }
 
 void TimeUtils::nowUTC(std::tm *result)
@@ -23,7 +23,7 @@ void TimeUtils::nowUTC(std::tm *result)
 std::string TimeUtils::format(const std::tm *tmTime, const char *formatStr)
 {
     std::time_t timeEpoch = TimeUtils::toEpoch(tmTime);
-    std::tm tmTmp = {};
+    std::tm tmTmp{};
     TimeUtils::fromEpoch(&tmTmp, timeEpoch);
     std::ostringstream oss;
     oss << std::put_time(tmTime, formatStr);
@@ -56,7 +56,7 @@ void TimeUtils::addSeconds(std::tm *time, int seconds)
 {
     std::time_t tt = std::mktime(time);
     tt += seconds;
-    memcpy(time, std::localtime(&tt), sizeof(std::tm));
+    localtime_r(&tt, time);
 }
 
 void TimeUtils::addDays(std::tm *time, int days)
@@ -83,7 +83,7 @@ std::time_t TimeUtils::toEpoch(const std::tm *time)
 
 void TimeUtils::fromEpoch(std::tm *result, std::time_t epoch)
 {
-    memcpy(result, std::localtime(&epoch), sizeof(std::tm));
+    localtime_r(&epoch, result);
 }
 
 bool TimeUtils::isValidDate(int year, int month, int day)
@@ -101,8 +101,8 @@ bool TimeUtils::isValidDate(int year, int month, int day)
 
 std::time_t TimeUtils::getDateEpoch(std::time_t time)
 {
-    struct std::tm tmr;
-    memcpy(&tmr, std::localtime(&time), sizeof(tmr));
+    struct std::tm tmr{};
+    localtime_r(&time, &tmr);
     tmr.tm_hour = 0;
     tmr.tm_min = 0;
     tmr.tm_sec = 0;
